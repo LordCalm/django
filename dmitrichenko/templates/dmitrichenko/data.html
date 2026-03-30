@@ -1,0 +1,70 @@
+{% extends 'dmitrichenko/base.html' %}
+
+{% block title %}Данные{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">Среднемесячные температуры и осадки</h2>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body bg-light">
+            <form method="GET" action="" class="row align-items-center">
+                <div class="col-auto">
+                    <label for="fileSelect" class="fw-bold me-2">Выберите таблицу:</label>
+                </div>
+                <div class="col-md-4">
+                    <select name="file" id="fileSelect" class="form-select" onchange="this.form.submit()">
+                        {% for file in files %}
+                            <option value="{{ file }}" {% if file == selected_file %}selected{% endif %}>
+                                {{ file }}
+                            </option>
+                        {% empty %}
+                            <option>Файлы не найдены</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <noscript>
+                        <button type="submit" class="btn btn-primary">Загрузить</button>
+                    </noscript>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if data %}
+        <div class="card shadow-sm">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-primary">
+                    <i class="bi bi-table me-2"></i>Текущий файл: <strong>{{ selected_file }}</strong>
+                </h5>
+                <span class="badge bg-secondary">Строк: {{ data|length }}</span>
+            </div>
+            <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
+                <table class="table table-hover table-sm table-striped mb-0 text-nowrap">
+                    <thead class="table-dark sticky-top">
+                        <tr>
+                            {% for header in headers %}
+                                <th>{{ header }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in data %}
+                        <tr>
+                            {% for value in row.values %}
+                                <td>{{ value }}</td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="alert alert-warning shadow-sm">
+            <i class="bi bi-exclamation-triangle me-2"></i>Данные в выбранном файле отсутствуют или файл не выбран.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

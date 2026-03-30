@@ -1,0 +1,29 @@
+{% extends 'dmitrichenko/index.html' %}
+{% block content %}
+<div class="container mt-5">
+    <div class="card border-success">
+        <div class="card-header bg-success text-white">
+            <h4>Результат выполнения запроса</h4>
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th>Параметр</th>
+                        <th>Значение</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>Имя</td><td>{{ data.name }}</td></tr>
+                    <tr><td>Фамилия</td><td>{{ data.last_name }}</td></tr>
+                    <tr><td>Возраст</td><td>{{ data.age }}</td></tr>
+                    <tr><td>Почта</td><td>{{ data.email }}</td></tr>
+                    <tr><td>Дата</td><td>{{ data.date }}</td></tr>
+                    <tr><td>Рекомендации</td><td>{{ data.recommendations }}</td></tr>
+                </tbody>
+            </table>
+            <a href="{% url 'userform' %}" class="btn btn-outline-primary">Назад к форме</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

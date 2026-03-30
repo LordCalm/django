@@ -1,0 +1,20 @@
+{% extends 'dmitrichenko/base.html' %}
+
+{% block title %}О студенте{% endblock %}
+
+{% block content %}
+    <h1 class="display-6 mb-4">Информация о студенте</h1>
+    
+    <div class="card border-primary shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title text-primary">{{ dict.last_name }} {{ dict.name }}</h5>
+            <h6 class="card-subtitle mb-2 text-muted">Студент NSTU</h6>
+            <hr>
+            <p class="card-text">
+                <strong>Группа:</strong> <code>{{ dict.group }}</code><br>
+                <strong>Дисциплина:</strong> Моделирование процессов и объектов
+            </p>
+            <a href="/" class="btn btn-sm btn-outline-primary">На главную</a>
+        </div>
+    </div>
+{% endblock %}
