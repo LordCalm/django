@@ -1,0 +1,174 @@
+{% extends 'dmitrichenko/base.html' %}
+
+{% block title %}Лабораторная работа 2{% endblock %}
+
+{% block content %}
+<style>
+    /* Исправление вылета графиков за пределы блоков */
+    .plot-img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin: 0 auto;
+    }
+
+    /* Контейнер для тепловой карты с прокруткой */
+    .heatmap-container {
+        max-height: 600px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    /* Стили для таблиц статистики, чтобы не ломали верстку */
+    .summary-table {
+        overflow-x: auto;
+        font-size: 0.8rem;
+    }
+    .summary-table table {
+        width: 100% !important;
+    }
+
+    .card {
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .card-header {
+        font-weight: bold;
+        background-color: #f8f9fa;
+    }
+</style>
+
+<div class="container-fluid">
+    <h1 class="display-6 mb-4">Анализ климатических индексов</h1>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label for="file" class="form-label text-muted small">Выберите файл данных:</label>
+                    <select name="file" id="file" class="form-select">
+                        {% for f in files %}
+                        <option value="{{ f }}" {% if f == selected_file %}selected{% endif %}>{{ f }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label for="index" class="form-label text-muted small">Тип индекса:</label>
+                    <select name="index" id="index" class="form-select">
+                        {% for key, name in indices.items %}
+                        <option value="{{ key }}" {% if key == selected_index %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 d-grid">
+                    <button type="submit" class="btn btn-primary w-100">Обновить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Временной ряд индекса</div>
+        <div class="card-body p-0">
+            <img src="data:image/png;base64,{{ ts_plot }}" class="plot-img">
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card h-100 text-white {% if adf_pvalue < 0.05 %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                <div class="card-body">
+                    <h5 class="card-title border-bottom pb-2">ADF Test (Дики-Фуллера)</h5>
+                    <p class="mb-1">p-value: <strong>{{ adf_pvalue }}</strong></p>
+                    <p class="mb-0">Результат: <strong>{{ adf_result }}</strong></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100 text-white {% if kpss_pvalue > 0.05 %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                <div class="card-body">
+                    <h5 class="card-title border-bottom pb-2">KPSS Test</h5>
+                    <p class="mb-1">p-value: <strong>{{ kpss_pvalue }}</strong></p>
+                    <p class="mb-0">Результат: <strong>{{ kpss_result }}</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-primary">
+        <div class="card-header bg-primary text-white">Прогноз модели ARIMA</div>
+        <div class="card-body p-0">
+            <img src="data:image/png;base64,{{ forecast_plot }}" class="plot-img">
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header">Декомпозиция ряда</div>
+                <div class="card-body p-0">
+                    <img src="data:image/png;base64,{{ decomp_plot }}" class="plot-img">
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-6">
+            <div class="card">
+                <div class="card-header">Скользящее среднее и СТД</div>
+                <div class="card-body p-0">
+                    <img src="data:image/png;base64,{{ rolling_plot }}" class="plot-img">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Тепловая карта (Год x Месяц)</div>
+        <div class="card-body">
+            <div class="heatmap-container">
+                <img src="data:image/png;base64,{{ heatmap_plot }}" class="plot-img" style="min-width: 800px;">
+            </div>
+            <small class="text-muted">* Используйте прокрутку, если данных много</small>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">ACF</div>
+                <div class="card-body p-0">
+                    <img src="data:image/png;base64,{{ acf_graph }}" class="plot-img">
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">PACF</div>
+                <div class="card-body p-0">
+                    <img src="data:image/png;base64,{{ pacf_graph }}" class="plot-img">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="mt-5 mb-3">Статистика модели ARIMA</h2>
+    <div class="card">
+        <div class="card-body summary-table">
+            {{ arima_summary|safe }}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Диагностика остатков</div>
+        <div class="card-body p-0">
+            <img src="data:image/png;base64,{{ diagnostics_graph }}" class="plot-img">
+        </div>
+    </div>
+
+    <div class="mb-5 mt-4">
+        <a href="/" class="btn btn-outline-secondary">← На главную</a>
+    </div>
+</div>
+{% endblock %}

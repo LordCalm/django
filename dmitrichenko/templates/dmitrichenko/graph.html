@@ -17,7 +17,6 @@
 
 <div class="container py-4">
 
-    <!-- ФИЛЬТРЫ -->
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <form class="row g-3 align-items-end" id="stationForm" method="GET">
@@ -50,7 +49,6 @@
         <div class="alert alert-danger">{{ error }}</div>
     {% else %}
 
-    <!-- ГТК -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card shadow-sm border-primary">
@@ -65,7 +63,6 @@
         </div>
     </div>
 
-    <!-- MAIN GRAPH -->
     <div class="card shadow-sm mb-4 border-primary">
         <div class="card-header bg-primary text-white fw-semibold">Прогноз температур и осадков (ARIMA)</div>
         <div class="card-body">{{ plot_div_main|safe }}</div>
@@ -76,7 +73,13 @@
     <div class="row">
         <div class="col-lg-6 mb-4">
             <div class="card shadow-sm h-100">
-                <div class="card-body p-2">{{ plot_div_1|safe }}</div>
+                <div class="card-body p-2">{{ plot_div_1_temp|safe }}</div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body p-2">{{ plot_div_1_precip|safe }}</div>
             </div>
         </div>
         <div class="col-lg-6 mb-4">
@@ -84,21 +87,35 @@
                 <div class="card-body p-2">{{ plot_div_2|safe }}</div>
             </div>
         </div>
+        
         <div class="col-12 mb-4">
             <div class="card shadow-sm">
                 <div class="card-body p-2">{{ plot_div_3|safe }}</div>
             </div>
         </div>
+
         <div class="col-lg-6 mb-4">
             <div class="card shadow-sm h-100">
-                <div class="card-body p-2">{{ plot_div_4|safe }}</div>
+                <div class="card-body p-2">{{ plot_div_4_temp|safe }}</div>
             </div>
         </div>
         <div class="col-lg-6 mb-4">
             <div class="card shadow-sm h-100">
-                <div class="card-body p-2">{{ plot_div_5|safe }}</div>
+                <div class="card-body p-2">{{ plot_div_4_precip|safe }}</div>
             </div>
         </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body p-2">{{ plot_div_5_temp|safe }}</div>
+            </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body p-2">{{ plot_div_5_precip|safe }}</div>
+            </div>
+        </div>
+
         <div class="col-12 mb-4">
             <div class="card shadow-sm">
                 <div class="card-body p-2">{{ plot_div_6|safe }}</div>

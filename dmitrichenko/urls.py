@@ -7,4 +7,5 @@ urlpatterns = [
     path('data/', views.data_view, name='data_page'),     # Данные: http://127.0.0.1:8000/data/
     path('graph/', views.graph_view, name='graph_page'),
     path('userform/', views.user_form_view, name='userform'),
+    path('lab2/', views.lab2_view, name='lab2_results'),
 ]
