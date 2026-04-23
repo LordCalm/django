@@ -2,6 +2,7 @@ import os
 import io
 import csv
 import base64
+import pickle
 import pandas as pd
 import numpy as np
 import seaborn as sns
@@ -51,9 +52,12 @@ def about(request):
 def data_view(request):
     # Путь к папке с данными
     data_dir = os.path.join(settings.BASE_DIR, 'dmitrichenko', 'static', 'dmitrichenko', 'data')
+    indices_dir = os.path.join(settings.BASE_DIR, 'dmitrichenko', 'static', 'dmitrichenko', 'indices')
     
     # Получаем список всех .csv файлов в папке
-    files = [f for f in os.listdir(data_dir) if f.endswith('.csv')]
+    files_data = [f for f in os.listdir(data_dir) if f.endswith('.csv')]
+    files_indices = [f for f in os.listdir(indices_dir) if f.endswith('.csv')]
+    files = files_data + files_indices
     
     # Получаем имя выбранного файла из GET-запроса (по умолчанию первый в списке)
     selected_file = request.GET.get('file', files[0] if files else None)
@@ -62,11 +66,21 @@ def data_view(request):
     headers = []  # Список для названий столбцов
     
     if selected_file:
-        file_path = os.path.join(data_dir, selected_file)
-        with open(file_path, newline='', encoding='cp1251') as f:
-            reader = csv.DictReader(f, delimiter=';')
-            data_list = list(reader)
-            headers = reader.fieldnames  # Получаем имена столбцов
+        if selected_file in files_data:
+            file_path = os.path.join(data_dir, selected_file)
+        else:
+            file_path = os.path.join(indices_dir, selected_file)
+        try:
+            with open(file_path, newline='', encoding='utf-8') as f:
+                reader = csv.DictReader(f, delimiter=',') 
+                data_list = list(reader)
+                headers = reader.fieldnames
+        except (UnicodeDecodeError, Exception):
+            # Резервный вариант для старых файлов
+            with open(file_path, newline='', encoding='cp1251') as f:
+                reader = csv.DictReader(f, delimiter=';')
+                data_list = list(reader)
+                headers = reader.fieldnames
 
     context = {
         'files': files,
@@ -229,7 +243,10 @@ def load_climate_timeseries(selected_file):
 def calculate_gtk(group):
     active = group['temp'] > 10
     
-    active_temps = group.loc[active, 'temp'].sum()
+    active_temps = (
+        group.loc[active, 'temp'] *
+        group.loc[active].index.days_in_month
+    ).sum()
     active_precip = group.loc[active, 'precip'].sum()
 
     if active_temps > 0:
@@ -248,8 +265,11 @@ def calculate_gtk_series(temp_ts: pd.Series, precip_ts: pd.Series) -> pd.Series:
     # 12-месячные суммы осадков
     rolling_precip = precip_ts.rolling(window=12, min_periods=6).sum()
 
-    # активная температура (только >10°C)
-    active_temp = temp_ts.where(temp_ts > 10, 0)
+    # число дней в месяце
+    days = temp_ts.index.days_in_month
+
+    # активные температуры с учетом дней месяца
+    active_temp = temp_ts.where(temp_ts > 10, 0) * days
 
     # 12-месячная сумма активных температур
     rolling_temp = active_temp.rolling(window=12, min_periods=6).sum()
@@ -691,6 +711,26 @@ def plot_forecast(train: pd.Series, test: pd.Series,
     plt.tight_layout()
     return get_graph()
 
+def plot_models_comparison(results_data, index_name):
+    """Генерирует график сравнения предсказаний всех трех моделей"""
+    plt.figure(figsize=(12, 6))
+    
+    dates = results_data['test_index']
+    actual = results_data['test_actual']
+    
+    plt.plot(dates, actual, label='Фактические данные', color='black', linewidth=2)
+    plt.plot(dates, results_data['ARIMA']['pred'], label='ARIMA', linestyle='--')
+    plt.plot(dates, results_data['XGBoost']['pred'], label='XGBoost', linestyle='-.')
+    plt.plot(dates, results_data['LSTM']['pred'], label='LSTM', linestyle=':')
+    
+    plt.title(f'Сравнение прогнозов моделей для {index_name}', fontsize=14)
+    plt.xlabel('Дата', fontsize=12)
+    plt.ylabel('Значение индекса', fontsize=12)
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    return get_graph()
+
 def lab2_view(request):
     data_dir = os.path.join(settings.BASE_DIR, 'dmitrichenko', 'static', 'dmitrichenko', 'data')
     files = [f for f in os.listdir(data_dir) if f.endswith('.csv')]
@@ -743,6 +783,28 @@ def lab2_view(request):
     full_series = all_indices[selected_index_key].dropna()
     index_display_name = indices_map[selected_index_key]
     first_diff = full_series.diff().dropna() # Первая разность для графиков
+
+    # ==========================================
+    # ЗАГРУЗКА ПРЕДРАССЧИТАННЫХ ПРОГНОЗОВ И МЕТРИК
+    # ==========================================
+    # Путь к файлу, который создал ваш скрипт train_models.py
+    file_name = f'precomputed_forecasts_{selected_index_key}.pkl'
+    results_path = os.path.join(settings.BASE_DIR, 'dmitrichenko', 'static', 'dmitrichenko', 'models', file_name)
+    
+    try:
+        with open(results_path, 'rb') as f:
+            ml_results = pickle.load(f)
+            
+        # Генерация графика сравнения
+        comparison_plot = plot_models_comparison(ml_results, index_display_name)
+        metrics_data = {
+            'ARIMA': ml_results['ARIMA']['metrics'],
+            'XGBoost': ml_results['XGBoost']['metrics'],
+            'LSTM': ml_results['LSTM']['metrics'],
+        }
+    except FileNotFoundError:
+        comparison_plot = None
+        metrics_data = None
 
     # --- ЛОГИКА ПРОГНОЗА ---
     # Разделяем на train и test (например, последние 12 месяцев на тест)
@@ -854,6 +916,9 @@ def lab2_view(request):
         'rolling_plot': rolling_plot,
         'heatmap_plot': heatmap_plot,
         'forecast_plot': forecast_plot,
+        
+        'comparison_plot': comparison_plot,
+        'metrics_data': metrics_data,
         
         'adf_pvalue': round(float(adf_test[1]), 6),
         'adf_result': "Стационарен" if adf_test[1] < 0.05 else "Нестационарен",

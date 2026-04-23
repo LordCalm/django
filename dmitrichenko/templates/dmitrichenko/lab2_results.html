@@ -167,6 +167,53 @@
         </div>
     </div>
 
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Сравнение моделей прогнозирования ({{ selected_index|upper }})</h5>
+        </div>
+        <div class="card-body">
+            {% if comparison_plot %}
+                <div class="text-center mb-4">
+                    <img src="data:image/png;base64,{{ comparison_plot }}" class="img-fluid border rounded" alt="Сравнение моделей">
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered shadow-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Модель</th>
+                                <th class="text-center">MSE</th>
+                                <th class="text-center">RMSE</th>
+                                <th class="text-center">MAE</th>
+                                <th class="text-center">R²</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for model_name, metrics in metrics_data.items %}
+                            <tr>
+                                <td class="fw-bold">{{ model_name }}</td>
+                                <td class="text-center">{{ metrics.MSE|floatformat:4 }}</td>
+                                <td class="text-center">{{ metrics.RMSE|floatformat:4 }}</td>
+                                <td class="text-center">{{ metrics.MAE|floatformat:4 }}</td>
+                                <td class="text-center">
+                                    <span class="badge {% if metrics.R2 > 0.5 %}bg-success{% else %}bg-warning text-dark{% endif %}">
+                                        {{ metrics.R2|floatformat:4 }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Файл прогнозов для индекса <strong>{{ selected_index }}</strong> не найден. Запустите скрипт обучения для этого индекса.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
     <div class="mb-5 mt-4">
         <a href="/" class="btn btn-outline-secondary">← На главную</a>
     </div>
