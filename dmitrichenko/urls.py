@@ -8,4 +8,5 @@ urlpatterns = [
     path('graph/', views.graph_view, name='graph_page'),
     path('userform/', views.user_form_view, name='userform'),
     path('lab2/', views.lab2_view, name='lab2_results'),
+    path('map/', views.indices_map_view, name='map'),
 ]

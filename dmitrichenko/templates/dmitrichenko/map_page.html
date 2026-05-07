@@ -1,0 +1,141 @@
+{% extends "dmitrichenko/base.html" %}
+{% load static %}
+
+{% block title %}Карты изолиний{% endblock %}
+
+{% block content %}
+<style>
+    /* Стили для контейнера управления */
+    .map-controls {
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 10px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    /* Ограничитель для карты, чтобы она не вылезала за края при зуме */
+    .map-viewport {
+        cursor: grab;
+        overflow: hidden;
+        background: #eee;
+        position: relative;
+    }
+
+    .map-viewport:active {
+        cursor: grabbing;
+    }
+
+    /* Контейнер, который мы будем трансформировать */
+    #map-container {
+        transform-origin: 0 0;
+        transition: transform 0.1s ease-out;
+        will-change: transform;
+    }
+</style>
+
+<div class="text-center mb-4">
+    <h2>Карты климатических индексов</h2>
+    <p class="text-muted">Используйте колесико мыши для зума и зажмите кнопку для перемещения</p>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12 d-flex justify-content-center gap-3 align-items-center">
+        <form method="GET" class="d-flex gap-2 w-50">
+            <select name="index" class="form-select">
+                {% for index in indices %}
+                    <option value="{{ index }}" {% if index == selected_index %}selected{% endif %}>
+                        {{ index }}
+                    </option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-dark">Показать</button>
+        </form>
+
+        <!-- Регулировка прозрачности -->
+        <div class="d-flex align-items-center gap-2 border-start ps-3">
+            <label for="opacityRange" class="form-label mb-0">Прозрачность:</label>
+            <input type="range" class="form-range" id="opacityRange" min="0" max="1" step="0.05" value="0.8" style="width: 150px;">
+        </div>
+    </div>
+</div>
+
+<div class="map-viewport shadow rounded mx-auto" style="max-width: 100%; width: 1200px; height: 800px;">
+    <div id="map-container" class="w-100 h-100 position-absolute">
+        <!-- Базовая карта -->
+        <img src="{% static base_map_url %}" 
+             class="position-absolute top-0 start-0 w-100 h-100" 
+             style="z-index: 1; object-fit: contain; pointer-events: none;" 
+             alt="Базовая карта">
+
+        <!-- Слой изолиний -->
+        {% if selected_index %}
+        <img id="overlay-layer" 
+             src="{% static 'dmitrichenko/map/aligned/'|add:selected_index %}" 
+             class="position-absolute top-0 start-0 w-100 h-100" 
+             style="z-index: 2; object-fit: contain; opacity: 0.8; pointer-events: none;" 
+             alt="Слой изолиний">
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    const container = document.getElementById('map-container');
+    const viewport = document.querySelector('.map-viewport');
+    const overlay = document.getElementById('overlay-layer');
+    const opacitySlider = document.getElementById('opacityRange');
+
+    let scale = 1;
+    let pointX = 0;
+    let pointY = 0;
+    let start = { x: 0, y: 0 };
+    let isPanning = false;
+
+    // 1. Регулировка прозрачности
+    opacitySlider.addEventListener('input', (e) => {
+        if (overlay) {
+            overlay.style.opacity = e.target.value;
+        }
+    });
+
+    // 2. Масштабирование
+    const setTransform = () => {
+        container.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+    }
+
+    viewport.onwheel = (e) => {
+        e.preventDefault();
+        const xs = (e.clientX - viewport.offsetLeft - pointX) / scale;
+        const ys = (e.clientY - viewport.offsetTop - pointY) / scale;
+        const delta = -e.deltaY;
+
+        (delta > 0) ? (scale *= 1.1) : (scale /= 1.1);
+        
+        // Ограничения зума
+        scale = Math.min(Math.max(1, scale), 10); 
+
+        pointX = e.clientX - viewport.offsetLeft - xs * scale;
+        pointY = e.clientY - viewport.offsetTop - ys * scale;
+
+        setTransform();
+    }
+
+    // 3. Перетаскивание (Panning)
+    viewport.onmousedown = (e) => {
+        e.preventDefault();
+        start = { x: e.clientX - pointX, y: e.clientY - pointY };
+        isPanning = true;
+    }
+
+    window.onmouseup = () => {
+        isPanning = false;
+    }
+
+    viewport.onmousemove = (e) => {
+        if (!isPanning) return;
+        pointX = e.clientX - start.x;
+        pointY = e.clientY - start.y;
+        setTransform();
+    }
+</script>
+{% endblock %}

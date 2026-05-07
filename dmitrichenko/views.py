@@ -930,3 +930,22 @@ def lab2_view(request):
     }
 
     return render(request, 'dmitrichenko/lab2_results.html', context)
+
+def indices_map_view(request):
+    # Путь к папке с картами
+    aligned_folder = os.path.join(settings.BASE_DIR, 'dmitrichenko', 'static', 'dmitrichenko', 'map', 'aligned')
+    
+    indices = []
+    if os.path.exists(aligned_folder):
+        # Получаем список всех файлов в папке (кроме системных)
+        indices = [f for f in os.listdir(aligned_folder) if f.endswith('.png')]
+    
+    # По умолчанию отображаем первый индекс, если он есть
+    selected_index = request.GET.get('index', indices[0] if indices else None)
+
+    context = {
+        'indices': indices,
+        'selected_index': selected_index,
+        'base_map_url': 'dmitrichenko/map/map.png', # Путь к основной гугл карте
+    }
+    return render(request, 'dmitrichenko/map_page.html', context)
